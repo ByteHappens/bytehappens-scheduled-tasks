@@ -1,0 +1,43 @@
+{
+  "name": "bytehappens-scheduled-tasks",
+  "version": "1.0.0",
+  "description": "ByteHappens Scheduled Tasks",
+  "author": "Ewan \"ScottChak\" BURNS",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ByteHappens/bytehappens-data-export.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": "10.15.1"
+  },
+  "scripts": {
+    "postinstall": "npm run build",
+    "start": "node .dist",
+    "build": "grunt build",
+    "watch": "grunt watch",
+    "debug": "nodemon --exec \"node -r dotenv/config .dist dotenv_config_path=environment/dev/.env\" --watch .dist environment/dev",
+    "dev": "npm run build && concurrently \"npm run debug\" \"npm run watch\"",
+    "tsc": "tsc"
+  },
+  "dependencies": {
+    "bytehappens": "0.0.5",
+    "bytehappens-logging-winston": "0.0.5",
+    "bytehappens-storage-mongodb": "0.0.5",
+    "cron": "^1.6.0",
+    "module-alias": "^2.1.0"
+  },
+  "devDependencies": {
+    "@types/cron": "^1.6.0",
+    "@types/node": "^10.12.26",
+    "concurrently": "^4.0.1",
+    "grunt": "^1.0.3",
+    "grunt-contrib-watch": "^1.1.0",
+    "grunt-ts": "^6.0.0-beta.22",
+    "nodemon": "^1.18.9",
+    "typescript": "^3.2.4"
+  },
+  "_moduleAliases": {
+    "common": ".dist/common"
+  }
+}
