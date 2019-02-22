@@ -13,10 +13,11 @@
   },
   "scripts": {
     "postinstall": "npm run build",
-    "start": "node .dist",
+    "prestart": "node .dist/setup",
+    "start": "node .dist/start",
     "build": "grunt build",
     "watch": "grunt watch",
-    "debug": "nodemon --exec \"node -r dotenv/config .dist dotenv_config_path=environment/dev/.env\" --watch .dist environment/dev",
+    "debug": "nodemon --exec \"node -r dotenv/config .dist/start dotenv_config_path=environment/dev/.env\" --watch .dist environment/dev",
     "dev": "npm run build && concurrently \"npm run debug\" \"npm run watch\"",
     "tsc": "tsc"
   },

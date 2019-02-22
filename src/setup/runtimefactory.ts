@@ -42,7 +42,7 @@ export class RuntimeFactory<
       let username: string = process.env.LOGGING_MONGODB_USERNAME;
       let password: string = process.env.LOGGING_MONGODB_PASSWORD;
       let databaseName: string = process.env.LOGGING_MONGODB_DATABASE;
-      let collection: string = process.env.WEB_APP_NAME;
+      let collection: string = process.env.LOGGING_MONGODB_COLLECTION;
 
       response = new loggingWinston.mongodb.WinstonMongoDbTransportConfiguration(
         {
@@ -104,6 +104,7 @@ export class RuntimeFactory<
     let response: runtimes.tasks.ITask;
 
     let useMongoDb: boolean = process.env.LOGGING_MONGODB_USE === "true";
+    console.log(useMongoDb);
     if (useMongoDb) {
       let host: string = process.env.LOGGING_MONGODB_HOST;
       let port: number = parseInt(process.env.LOGGING_MONGODB_PORT);
