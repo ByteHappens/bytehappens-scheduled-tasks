@@ -1,6 +1,5 @@
-import { logging, runtimes } from "bytehappens";
-
 import { MongoClient, Db, DbAddUserOptions } from "mongodb";
+import { logging, runtimes } from "bytehappens";
 import { storageMongoDb } from "bytehappens-storage-mongodb";
 
 export class CreateMongoDbLogUserTask<
