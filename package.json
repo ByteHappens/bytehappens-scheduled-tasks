@@ -22,7 +22,7 @@
     "tsc": "tsc"
   },
   "dependencies": {
-    "bytehappens-logging-winston": "0.0.6",
+    "bytehappens-logging-winston": "0.0.7",
     "cron": "^1.6.0",
     "module-alias": "^2.1.0",
     "mongodb": "^3.1.13"
