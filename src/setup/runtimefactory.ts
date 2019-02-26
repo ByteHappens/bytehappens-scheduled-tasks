@@ -18,7 +18,6 @@ export class RuntimeFactory<
     let response: runtimes.tasks.ITask;
 
     let useMongoDb: boolean = process.env.LOGGING_MONGODB_USE === "true";
-    console.log(useMongoDb);
     if (useMongoDb) {
       let host: string = process.env.LOGGING_MONGODB_HOST;
       let port: number = parseInt(process.env.LOGGING_MONGODB_PORT);
@@ -57,7 +56,7 @@ export class RuntimeFactory<
         checkMongoDbAvailabilityTask,
         5,
         5000,
-        "RetryCreateMongoDbLogUser",
+        "RetryCheckMongoDbAvailabilityTask",
         setupLoggerFactory
       );
 
