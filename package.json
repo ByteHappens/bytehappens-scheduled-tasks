@@ -17,6 +17,7 @@
     "start": "node .dist/start",
     "build": "grunt build",
     "watch": "grunt watch",
+    "debugSetup": "nodemon --exec \"node -r dotenv/config .dist/setup dotenv_config_path=environment/dev/.env\" --watch .dist environment/dev",
     "debug": "nodemon --exec \"node -r dotenv/config .dist/start dotenv_config_path=environment/dev/.env\" --watch .dist environment/dev",
     "dev": "npm run build && concurrently \"npm run debug\" \"npm run watch\"",
     "tsc": "tsc"

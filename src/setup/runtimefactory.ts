@@ -56,8 +56,8 @@ export class RuntimeFactory<
 
       let retryCheckMongoDbAvailabilityTask: runtimes.tasks.ITask = new runtimes.tasks.RetriableTask(
         checkMongoDbAvailabilityTask,
-        10,
-        1000,
+        5,
+        5000,
         "RetryCreateMongoDbLogUser",
         setupLoggerFactory
       );
@@ -82,7 +82,7 @@ export class RuntimeFactory<
         retryCheckMongoDbAvailabilityTask,
         retryCreateMongoDbLogUserTask,
         new runtimes.tasks.LambdaTask(
-          () => {
+          async () => {
             return true;
           },
           "OnFailureTask",
