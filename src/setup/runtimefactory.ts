@@ -44,7 +44,6 @@ export class RuntimeFactory<
       };
 
       let checkMongoDbAvailabilityTask: runtimes.tasks.ITask = new runtimes.tasks.LambdaTask(
-        //  SCK: Need to make LambdaTask accept async method
         async () => {
           //  SCK: If we can create client, then it is available
           let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(connection, user);
