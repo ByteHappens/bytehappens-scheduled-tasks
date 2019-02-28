@@ -8,7 +8,5 @@ let runtimeFactory = new RuntimeFactory();
 runtimeFactory.CreateRuntimeAsync().then(async (runtime: runtimes.core.IRuntime) => {
   if (runtime) {
     await runtime.RunAsync();
-    //  SCK: Test forcing exit
-    // process.exit(0);
   }
 });
