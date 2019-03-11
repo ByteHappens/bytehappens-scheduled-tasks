@@ -3,7 +3,10 @@ import { logging, runtimes } from "bytehappens";
 import { storageMongoDb } from "bytehappens-storage-mongodb";
 import { loggingWinston } from "bytehappens-logging-winston";
 
+import { CronApplication } from "common/scheduling/cron";
+
 import { CreateMongoDbLogUserTask } from "./tasks/createmongodbusertask";
+import { StartApplicationTask } from "bytehappens/lib/tasks";
 
 export class RuntimeFactory<
   TLog extends logging.ILog,
@@ -14,8 +17,86 @@ export class RuntimeFactory<
     return new loggingWinston.console.WinstonConsoleTransportConfiguration(level);
   }
 
-  private GetCreateMongoDbLogUserTask(setupLoggerFactory: TLoggerFactory): runtimes.tasks.ITask {
+  private GetCheckMongoDbAvailabilityTask(
+    startupLoggerFactory: TLoggerFactory,
+    connection: storageMongoDb.core.IMongoDbConnection,
+    user: storageMongoDb.core.IMongoDbUser
+  ): runtimes.tasks.ITask {
+    let response: runtimes.tasks.ITask = new runtimes.tasks.LambdaTask(
+      async () => {
+        //  SCK: If we can create client, then it is available
+        let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(connection, user);
+        return true;
+      },
+      "CheckMongoDbAvailabilityTask",
+      startupLoggerFactory
+    );
+
+    response = new runtimes.tasks.RetriableTask(response, 5, 5000, "RetryCheckMongoDbAvailabilityTask", startupLoggerFactory);
+
+    return response;
+  }
+
+  private GetCreateMongoDbLogUserTask(
+    startupLoggerFactory: TLoggerFactory,
+    connection: storageMongoDb.core.IMongoDbConnection,
+    adminUser: storageMongoDb.core.IMongoDbUser,
+    loggingUser: storageMongoDb.core.IMongoDbUser
+  ): runtimes.tasks.ITask {
+    let response: runtimes.tasks.ITask = new CreateMongoDbLogUserTask(
+      connection,
+      adminUser,
+      loggingUser,
+      "CreateMongoDbLogUser",
+      startupLoggerFactory
+    );
+
+    response = new runtimes.tasks.RetriableTask(response, 2, 10000, "RetryCreateMongoDbLogUser", startupLoggerFactory);
+
+    return response;
+  }
+
+  private GetCleanLogsApplicationTask(
+    loggerFactory: TLoggerFactory,
+    startupLoggerFactory: TLoggerFactory
+  ): runtimes.tasks.ITask {
+    let applicationName: string = process.env.CLEANLOGS_APP_NAME;
+    let cronSchedule: string = process.env.CLEANLOGS_CRON_SCHEDULE;
+
+    let scheduledTask: runtimes.tasks.ITask = new runtimes.tasks.LambdaTask(
+      async () => {
+        return true;
+      },
+      "CleanLogsTask",
+      startupLoggerFactory
+    );
+
+    let application: runtimes.applications.IApplication = new CronApplication(
+      scheduledTask,
+      cronSchedule,
+      applicationName,
+      loggerFactory
+    );
+
+    let response: runtimes.tasks.ITask = new runtimes.tasks.StartApplicationTask(
+      application,
+      `Start${applicationName}`,
+      startupLoggerFactory
+    );
+
+    return response;
+  }
+
+  public async CreateRuntimeAsync(): Promise<runtimes.tasks.ITask> {
     let response: runtimes.tasks.ITask;
+
+    let consoleTransportConfiguration: loggingWinston.console.IWinstonConsoleTransportConfiguration = this.LoadWinstonConsoleTransportConfiguration();
+    let startupLoggerFactory: TLoggerFactory = <TLoggerFactory>(
+      new loggingWinston.console.WinstonConsoleLoggerFactory<TLog>(
+        consoleTransportConfiguration.level,
+        consoleTransportConfiguration
+      )
+    );
 
     let useMongoDb: boolean = process.env.LOGGING_MONGODB_USE === "true";
     if (useMongoDb) {
@@ -26,86 +107,66 @@ export class RuntimeFactory<
         port: port
       };
 
-      let username: string = process.env.LOGGING_MONGODB_ADMIN_USERNAME;
-      let password: string = process.env.LOGGING_MONGODB_ADMIN_PASSWORD;
-      let user: storageMongoDb.core.IMongoDbUser = {
-        username: username,
-        password: password
+      let adminUsername: string = process.env.LOGGING_MONGODB_ADMIN_USERNAME;
+      let adminPassword: string = process.env.LOGGING_MONGODB_ADMIN_PASSWORD;
+      let adminUser: storageMongoDb.core.IMongoDbUser = {
+        username: adminUsername,
+        password: adminPassword
       };
 
-      let newUsername: string = process.env.LOGGING_MONGODB_USERNAME;
-      let newPassword: string = process.env.LOGGING_MONGODB_PASSWORD;
-      let databaseName: string = process.env.LOGGING_MONGODB_DATABASE;
-      let newUser: storageMongoDb.core.IMongoDbUser = {
-        username: newUsername,
-        password: newPassword,
-        databaseName: databaseName
+      let loggingUsername: string = process.env.LOGGING_MONGODB_USERNAME;
+      let loggingPassword: string = process.env.LOGGING_MONGODB_PASSWORD;
+      let loggingDatabaseName: string = process.env.LOGGING_MONGODB_DATABASE;
+      let loggingUser: storageMongoDb.core.IMongoDbUser = {
+        username: loggingUsername,
+        password: loggingPassword,
+        databaseName: loggingDatabaseName
       };
 
-      let checkMongoDbAvailabilityTask: runtimes.tasks.ITask = new runtimes.tasks.LambdaTask(
-        async () => {
-          //  SCK: If we can create client, then it is available
-          let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(connection, user);
-          return true;
-        },
-        "CheckMongoDbAvailabilityTask",
-        setupLoggerFactory
-      );
-
-      let retryCheckMongoDbAvailabilityTask: runtimes.tasks.ITask = new runtimes.tasks.RetriableTask(
-        checkMongoDbAvailabilityTask,
-        5,
-        5000,
-        "RetryCheckMongoDbAvailabilityTask",
-        setupLoggerFactory
-      );
-
-      let createMongoDbLogUserTask: runtimes.tasks.ITask = new CreateMongoDbLogUserTask(
+      let checkMongoDbAvailabilityTask: runtimes.tasks.ITask = this.GetCheckMongoDbAvailabilityTask(
+        startupLoggerFactory,
         connection,
-        user,
-        newUser,
-        "CreateMongoDbLogUser",
-        setupLoggerFactory
+        adminUser
       );
 
-      let retryCreateMongoDbLogUserTask: runtimes.tasks.ITask = new runtimes.tasks.RetriableTask(
-        createMongoDbLogUserTask,
-        2,
-        10000,
-        "RetryCreateMongoDbLogUser",
-        setupLoggerFactory
+      let createMongoDbLogUserTask: runtimes.tasks.ITask = this.GetCreateMongoDbLogUserTask(
+        startupLoggerFactory,
+        connection,
+        adminUser,
+        loggingUser
       );
 
       response = new runtimes.tasks.TaskChain(
-        retryCheckMongoDbAvailabilityTask,
-        retryCreateMongoDbLogUserTask,
+        checkMongoDbAvailabilityTask,
+        createMongoDbLogUserTask,
         new runtimes.tasks.LambdaTask(
           async () => {
             return true;
           },
           "OnFailureTask",
-          setupLoggerFactory
+          startupLoggerFactory
         ),
         "TaskChain",
-        setupLoggerFactory
+        startupLoggerFactory
+      );
+
+      let applicationTask: runtimes.tasks.ITask = this.GetCleanLogsApplicationTask(startupLoggerFactory, startupLoggerFactory);
+
+      response = new runtimes.tasks.TaskChain(
+        response,
+        applicationTask,
+        new runtimes.tasks.LambdaTask(
+          async () => {
+            return true;
+          },
+          "OnFailureTask",
+          startupLoggerFactory
+        ),
+        "TaskChain",
+        startupLoggerFactory
       );
     }
 
-    return response;
-  }
-
-  public async CreateRuntimeAsync(): Promise<runtimes.tasks.ITask> {
-    let response: runtimes.tasks.ITask;
-
-    let consoleTransportConfiguration: loggingWinston.console.IWinstonConsoleTransportConfiguration = this.LoadWinstonConsoleTransportConfiguration();
-    let setupLoggerFactory: TLoggerFactory = <TLoggerFactory>(
-      new loggingWinston.console.WinstonConsoleLoggerFactory<TLog>(
-        consoleTransportConfiguration.level,
-        consoleTransportConfiguration
-      )
-    );
-
-    response = this.GetCreateMongoDbLogUserTask(setupLoggerFactory);
     return response;
   }
 }
