@@ -25,25 +25,21 @@ export class CreateMongoDbLogUserTask<
     this._mongoDbNewUser = newMongoDbUser;
   }
 
-  private async AddNewUserAsync(
-    mongoDbConfiguration: storageMongoDb.core.IMongoDbConnection,
-    mongoDbUser: storageMongoDb.core.IMongoDbUser,
-    newMongoDbUser: storageMongoDb.core.IMongoDbUser
-  ): Promise<boolean> {
-    let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(mongoDbConfiguration, mongoDbUser);
+  private async AddNewUserAsync(): Promise<boolean> {
+    let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(this._mongoDbConnection, this._mongoDbUser);
 
-    let databaseName: string = newMongoDbUser.databaseName;
+    let databaseName: string = this._mongoDbNewUser.databaseName;
     let options: DbAddUserOptions = {
       roles: [
         {
           role: "readWrite",
-          db: newMongoDbUser.databaseName
+          db: this._mongoDbNewUser.databaseName
         }
       ]
     };
 
     let db: Db = client.db(databaseName);
-    await db.addUser(newMongoDbUser.username, newMongoDbUser.password, options);
+    await db.addUser(this._mongoDbNewUser.username, this._mongoDbNewUser.password, options);
 
     return true;
   }
@@ -52,7 +48,7 @@ export class CreateMongoDbLogUserTask<
     let response: boolean = false;
 
     try {
-      response = await this.AddNewUserAsync(this._mongoDbConnection, this._mongoDbUser, this._mongoDbNewUser);
+      response = await this.AddNewUserAsync();
 
       this._logger.Log(<TLog>{
         level: "verbose",

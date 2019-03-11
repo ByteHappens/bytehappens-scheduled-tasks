@@ -6,7 +6,7 @@ import { loggingWinston } from "bytehappens-logging-winston";
 import { CronApplication } from "common/scheduling/cron";
 
 import { CreateMongoDbLogUserTask } from "./tasks/createmongodbusertask";
-import { StartApplicationTask } from "bytehappens/lib/tasks";
+import { CleanLogsTask } from "./tasks/cleanlogstask";
 
 export class RuntimeFactory<
   TLog extends logging.ILog,
@@ -58,18 +58,15 @@ export class RuntimeFactory<
 
   private GetCleanLogsApplicationTask(
     loggerFactory: TLoggerFactory,
-    startupLoggerFactory: TLoggerFactory
+    startupLoggerFactory: TLoggerFactory,
+    connection: storageMongoDb.core.IMongoDbConnection,
+    user: storageMongoDb.core.IMongoDbUser
   ): runtimes.tasks.ITask {
     let applicationName: string = process.env.CLEANLOGS_APP_NAME;
     let cronSchedule: string = process.env.CLEANLOGS_CRON_SCHEDULE;
+    let daysToKeep: number = parseInt(process.env.CLEANLOGS_DAYSTOKEEP);
 
-    let scheduledTask: runtimes.tasks.ITask = new runtimes.tasks.LambdaTask(
-      async () => {
-        return true;
-      },
-      "CleanLogsTask",
-      startupLoggerFactory
-    );
+    let scheduledTask: runtimes.tasks.ITask = new CleanLogsTask(connection, user, daysToKeep, applicationName, loggerFactory);
 
     let application: runtimes.applications.IApplication = new CronApplication(
       scheduledTask,
@@ -150,7 +147,12 @@ export class RuntimeFactory<
         startupLoggerFactory
       );
 
-      let applicationTask: runtimes.tasks.ITask = this.GetCleanLogsApplicationTask(startupLoggerFactory, startupLoggerFactory);
+      let applicationTask: runtimes.tasks.ITask = this.GetCleanLogsApplicationTask(
+        startupLoggerFactory,
+        startupLoggerFactory,
+        connection,
+        loggingUser
+      );
 
       response = new runtimes.tasks.TaskChain(
         response,
