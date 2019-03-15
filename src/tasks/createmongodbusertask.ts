@@ -72,6 +72,8 @@ export class CreateMongoDbLogUserTask<
             newUser: this._mongoDbNewUser
           }
         });
+
+        response = true;
       } else if (error.name === "MongoNetworkError") {
         this._logger.Log(<TLog>{
           level: "error",
