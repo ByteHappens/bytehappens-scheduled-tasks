@@ -53,6 +53,7 @@ export class CleanLogsTask<
                 .utc()
                 .startOf("day")
                 .subtract(this._daysToKeep, "days")
+                .toDate()
             }
           });
 
@@ -73,6 +74,8 @@ export class CleanLogsTask<
         }
       })
     );
+
+    client.close();
 
     return response;
   }

@@ -20,6 +20,7 @@ export function GetCheckMongoDbAvailabilityTask<
     async () => {
       //  SCK: If we can create client, then it is available
       let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(connection, user);
+      client.close();
       return true;
     },
     "CheckMongoDbAvailabilityTask",

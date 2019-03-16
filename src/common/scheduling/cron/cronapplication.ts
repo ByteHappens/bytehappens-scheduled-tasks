@@ -21,7 +21,7 @@ export class CronApplication<
   protected async StartInternalAsync(): Promise<void> {
     this._logger.Log(<TLog>{
       level: "verbose",
-      message: `Starting ${this._applicationName} application with cron schedule ${this._cronTime}`
+      message: `[Cron] Registering ${this._applicationName} job with schedule ${this._cronTime}`
     });
 
     this._job.start();
@@ -29,7 +29,7 @@ export class CronApplication<
 
   protected async StopInternalAsync(): Promise<boolean> {
     this._job.stop();
-    
+
     return true;
   }
 }

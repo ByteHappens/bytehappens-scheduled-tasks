@@ -41,6 +41,8 @@ export class CreateMongoDbLogUserTask<
     let db: Db = client.db(databaseName);
     await db.addUser(this._mongoDbNewUser.username, this._mongoDbNewUser.password, options);
 
+    client.close();
+
     return true;
   }
 
