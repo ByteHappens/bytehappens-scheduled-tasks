@@ -1,4 +1,3 @@
-import { MongoClient } from "mongodb";
 import { logging, runtimes } from "bytehappens";
 import { storageMongoDb } from "bytehappens-storage-mongodb";
 import { loggingWinston } from "bytehappens-logging-winston";
@@ -8,38 +7,27 @@ import { CronApplication } from "common/scheduling/cron";
 import { CreateMongoDbLogUserTask } from "../tasks/createmongodbusertask";
 import { CleanLogsTask } from "../tasks/cleanlogstask";
 
-export function GetCheckMongoDbAvailabilityTask<
+export function GetAwaitMongoDbAvailabilityTask<
   TLog extends logging.ILog,
   TStartupLoggerFactory extends loggingWinston.console.WinstonConsoleLoggerFactory<TLog>
 >(
-  startupLoggerFactory: TStartupLoggerFactory,
   connection: storageMongoDb.core.IMongoDbConnection,
-  user: storageMongoDb.core.IMongoDbUser
+  user: storageMongoDb.core.IMongoDbUser,
+  maxAttempts: number,
+  delayInMs: number,
+  startupLoggerFactory: TStartupLoggerFactory
 ): runtimes.tasks.ITask {
-  let response: runtimes.tasks.ITask = new runtimes.tasks.LambdaTask(
-    async () => {
-      //  SCK: If we can create client, then it is available
-      let client: MongoClient = await storageMongoDb.core.CreateMongoDbClientAsync(connection, user);
-      client.close();
-      return true;
-    },
-    "CheckMongoDbAvailabilityTask",
-    startupLoggerFactory
-  );
-
-  response = new runtimes.tasks.RetriableTask(response, 10, 1000, "RetryCheckMongoDbAvailabilityTask", startupLoggerFactory);
-
-  return response;
+  return new storageMongoDb.core.AwaitMongoDbAvailabilityTask(connection, user, maxAttempts, delayInMs, startupLoggerFactory);
 }
 
 export function GetCreateMongoDbLogUserTask<
   TLog extends logging.ILog,
   TStartupLoggerFactory extends loggingWinston.console.WinstonConsoleLoggerFactory<TLog>
 >(
-  startupLoggerFactory: TStartupLoggerFactory,
   connection: storageMongoDb.core.IMongoDbConnection,
   adminUser: storageMongoDb.core.IMongoDbUser,
-  loggingUser: storageMongoDb.core.IMongoDbUser
+  loggingUser: storageMongoDb.core.IMongoDbUser,
+  startupLoggerFactory: TStartupLoggerFactory
 ): runtimes.tasks.ITask {
   let response: runtimes.tasks.ITask = new CreateMongoDbLogUserTask(
     connection,
@@ -58,10 +46,10 @@ export function GetCleanLogsApplicationTask<
   TRuntimeLoggerFactory extends loggingWinston.core.WinstonLoggerFactory<TLog, TLogger>,
   TStartupLoggerFactory extends loggingWinston.console.WinstonConsoleLoggerFactory<TLog>
 >(
-  runtimeLoggerFactory: TRuntimeLoggerFactory,
-  startupLoggerFactory: TStartupLoggerFactory,
   connection: storageMongoDb.core.IMongoDbConnection,
-  user: storageMongoDb.core.IMongoDbUser
+  user: storageMongoDb.core.IMongoDbUser,
+  runtimeLoggerFactory: TRuntimeLoggerFactory,
+  startupLoggerFactory: TStartupLoggerFactory
 ): runtimes.tasks.ITask {
   let applicationName: string = process.env.CLEANLOGS_APP_NAME;
   let cronSchedule: string = process.env.CLEANLOGS_CRON_SCHEDULE;

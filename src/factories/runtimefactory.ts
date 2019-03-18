@@ -42,17 +42,19 @@ export class RuntimeFactory<
         databaseName: loggingDatabaseName
       };
 
-      let checkMongoDbAvailabilityTask: runtimes.tasks.ITask = TaskHelper.GetCheckMongoDbAvailabilityTask(
-        startupLoggerFactory,
+      let checkMongoDbAvailabilityTask: runtimes.tasks.ITask = TaskHelper.GetAwaitMongoDbAvailabilityTask(
         connection,
-        adminUser
+        adminUser,
+        10,
+        1000,
+        startupLoggerFactory
       );
 
       let createMongoDbLogUserTask: runtimes.tasks.ITask = TaskHelper.GetCreateMongoDbLogUserTask(
-        startupLoggerFactory,
         connection,
         adminUser,
-        loggingUser
+        loggingUser,
+        startupLoggerFactory
       );
 
       response = new runtimes.tasks.TaskChain(
@@ -70,10 +72,10 @@ export class RuntimeFactory<
       );
 
       let applicationTask: runtimes.tasks.ITask = TaskHelper.GetCleanLogsApplicationTask(
-        runtimeLoggerFactory,
-        startupLoggerFactory,
         connection,
-        loggingUser
+        loggingUser,
+        runtimeLoggerFactory,
+        startupLoggerFactory
       );
 
       response = new runtimes.tasks.TaskChain(
